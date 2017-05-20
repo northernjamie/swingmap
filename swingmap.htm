@@ -1,0 +1,212 @@
+<head>
+
+
+    <title>Propolis - Swing Tester 2017 Gen Election</title>
+    <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+    <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.34.0/mapbox-gl.js'></script>
+    <script>
+      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+      })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+      ga('create', 'UA-96850678-1', 'auto');
+      ga('send', 'pageview');
+    </script>
+
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.0.3/dist/leaflet.css"
+   integrity="sha512-07I2e+7D8p6he1SIM+1twR5TIrhUQn9+I6yjqD53JQjFiMf8EtC93ty0/5vJTZGF8aAocvHYNEDJajGdNx1IsQ=="
+   crossorigin=""/>
+
+<script src="https://unpkg.com/leaflet@1.0.3/dist/leaflet.js"
+   integrity="sha512-A7vV8IFfih/D732iSSKi20u/ooOfj/AGehOKq0f4vLT1Zr2Y+RX7C+w8A1gaSasGtRUZpF/NZgzSAu4/Gc41Lg=="
+   crossorigin=""></script>
+
+<script
+  src="https://code.jquery.com/jquery-3.2.1.min.js"
+  integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="
+  crossorigin="anonymous"></script>
+
+
+
+
+<style>
+
+body {
+  font-family: helvetica, arial, sans-serif;
+}
+ 
+
+a:link {
+    color: hotpink;
+}
+
+
+a:visited {
+    color: hotpink;
+}
+
+
+a:hover {
+    color: red;
+}
+
+h2
+  {
+    text-align:center;
+  }
+
+p
+ {
+  padding:5px;
+  font-size:12px;
+ }
+
+#mapid 
+	{
+		height: 100%;
+    width: 70%;
+	}
+
+#slider
+  {
+    width: 80%;
+    display:block;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+#slidervalue, #slidertext
+  {
+    text-align:center;
+    font-weight: bold;
+  }
+
+#controlbox
+  {
+    position:absolute;
+    height: 100%;
+    width: 30%;
+    top: 10px;
+    right: 0px;
+    background: rgba(255,255,255,0.8);
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+</style>
+
+</head>
+
+<body>
+
+<div id="mapid"></div>
+
+<div id="controlbox">
+  <div><h2>Swing - Mapped</h2></div>
+  <div style="font-size: 10px; font-style:italic;">Drag the slider to change the swing. Click the handle and use left and right arrow keys to increment in 2s</div>
+  <br>
+  <div id="slidercont"><input type="range" id="slider" min=0 max=100 /></input></div>
+  <br>
+  <div id="slidertext"></div>
+  <div><p>This map is based on <a href="http://swing.puntofisso.net/" target="_blank">Giuseppe Sollazzo's interactive swing chart</a>, which was based on <a href="http://www.bbc.co.uk/news/uk-politics-39927866" target="_blank">Christopher Cook's static swing charts</a>.</p><p>Most things here have been lifted straight from <a href="https://medium.com/@puntofisso/how-to-create-an-interactive-vote-swing-viewer-in-d3-a6bbd4c96b6f" target="_blank">Giuseppe's excellent blog post detailing how he made it</a>. I've thrown it together in a couple of hours - if anything, I've made Giuseppe's code even filthier, so please don't judge me on it. I will tidy it up, both from a code and design point of view, when I get a minute.</p>
+  <p>The lighter blues and reds are the holding party from the 2015 Gen Election. The darker blues and reds show which constituencies would be taken if swing were the chosen amount. Grey areas are those where lab/con are not the top two parties.</p>
+  <p><a href="http://twitter.com/northernjamie" target="_blank">@northernjamie</a></p>
+  </div>
+    
+</div>
+
+<div id="mapid"></div>
+
+<script>
+
+//Instantiate the map
+
+var mymap = L.map('mapid').setView([53.405, -2.4], 6);
+
+
+var CartoDB_Positron = L.tileLayer('http://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', {
+	attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="http://cartodb.com/attributions">CartoDB</a>',
+	subdomains: 'abcd',
+	maxZoom: 19
+}).addTo(mymap);
+
+
+var swing = 0;
+var seats_gained = 0;
+
+
+function getPolyColor(d) {
+
+  if (d['swingwinner'] === "Labour")
+  {
+  if (swing*2 > +d['swingmajority']) {
+   seats_gained++;
+   return d = "#0000ff"; //red
+  } else {
+   return d = "#f08080"; //light red
+  }
+ } else if (d['swingwinner'] === "Conservative")
+  {
+  if (-swing*2 > +d['swingmajority']) {
+   seats_gained++;
+   return d = "#ff0000"; //blue
+  } else {
+  return d = "#87cefa";//light blue
+  }
+}
+};
+
+function polystyle(feature) {
+    return {
+        fillColor: getPolyColor(feature.properties),
+        weight: 1,
+        opacity: 1,
+        color: '#eeeeee',
+        dashArray: '1',
+        fillOpacity: 1
+    };
+}
+
+function draw_map () {
+  
+  var boundary = new L.geoJson(boundary, {style: polystyle,
+  onEachFeature: function( feature, layer) {
+    layer.bindPopup("<strong>" + feature.properties.NAME + "</strong><br>" + feature.properties.swingwinner + "<br>Majority: " + feature.properties.swingmajority)
+  }
+  });
+
+  mymap.removeLayer(boundary);
+  
+  $.getJSON("swingparl.geojson",function(data){
+	 $(data.features).each(function(key, data) {
+        boundary.addData(data);
+	 })
+  });
+
+  boundary.addTo(mymap);
+};
+
+$('#slider').change(function() {
+ 
+ swing_pc = $(this).val()-50;
+ swing=200*swing_pc/100;
+ if (swing>0){
+  text = swing+"% swing to Conservative";
+ } else {
+  text = -swing+"% swing to Labour";
+}
+$('#slidervalue').html(swing);
+$('#slidertext').html(text);
+draw_map();
+});
+
+draw_map();
+
+
+
+</script>
+
+
+</body>
