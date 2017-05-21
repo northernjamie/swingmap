@@ -139,72 +139,96 @@ var swing = 0;
 var seats_gained = 0;
 
 
+
 function getPolyColor(d) {
 
   if (d['swingwinner'] === "Labour")
-  {
-  if (swing*2 > +d['swingmajority']) {
-   seats_gained++;
-   return d = "#0000ff"; //red
-  } else {
-   return d = "#f08080"; //light red
-  }
- } else if (d['swingwinner'] === "Conservative")
-  {
-  if (-swing*2 > +d['swingmajority']) {
-   seats_gained++;
-   return d = "#ff0000"; //blue
-  } else {
-  return d = "#87cefa";//light blue
-  }
-}
+    {
+      if (swing*2 > +d['swingmajority']) {
+        seats_gained++;
+        return d = "#0000ff"; //red
+      } else {
+        return d = "#f08080"; //light red
+      }
+    } else if (d['swingwinner'] === "Conservative")
+    {
+      if (-swing*2 > +d['swingmajority']) {
+        seats_gained++;
+        return d = "#ff0000"; //blue
+      } else {
+        return d = "#87cefa";//light blue
+      }
+    } 
+
 };
+
+function getPolyOpacity(d) {
+
+  if (d['swingwinner'] == null)
+    { return d = 0
+    }
+      else {
+      return d = 0.8;
+    }
+
+};
+
 
 function polystyle(feature) {
     return {
         fillColor: getPolyColor(feature.properties),
         weight: 1,
         opacity: 1,
-        color: '#eeeeee',
+        color: '#aaa',
         dashArray: '1',
-        fillOpacity: 1
+        fillOpacity: getPolyOpacity(feature.properties)
     };
 }
 
-function draw_map () {
-  
-  var boundary = new L.geoJson(boundary, {style: polystyle,
-  onEachFeature: function( feature, layer) {
-    layer.bindPopup("<strong>" + feature.properties.NAME + "</strong><br>" + feature.properties.swingwinner + "<br>Majority: " + feature.properties.swingmajority)
-  }
-  });
+function init_geojson (){
 
-  mymap.removeLayer(boundary);
-  
-  $.getJSON("swingparl.geojson",function(data){
-	 $(data.features).each(function(key, data) {
-        boundary.addData(data);
-	 })
-  });
 
-  boundary.addTo(mymap);
 };
 
+/*$.getJSON("swingparl.geojson",function(data){
+   $(data.features).each(function(key, data) {
+        boundary.addData(data);
+   })
+   
+});*/
+
+function add_polygons() {
+  
+  
+  $.getJSON("swingparl.geojson",function(data){
+    constitswing = L.geoJSON(data, {style: polystyle,
+      onEachFeature: function( feature, layer) {
+      layer.bindPopup("<strong>" + feature.properties.NAME + "</strong><br>" + feature.properties.swingwinner + "<br>Majority: " + feature.properties.swingmajority)
+    }
+  });
+    constitswing.addTo(mymap);
+    
+
+  });
+
+};
+
+
 $('#slider').change(function() {
- 
- swing_pc = $(this).val()-50;
- swing=200*swing_pc/100;
- if (swing>0){
-  text = swing+"% swing to Conservative";
- } else {
+  swing_pc = $(this).val()-50;
+  swing=200*swing_pc/100;
+  if (swing>0){
+    text = swing+"% swing to Conservative";
+  } else {
   text = -swing+"% swing to Labour";
-}
-$('#slidervalue').html(swing);
-$('#slidertext').html(text);
-draw_map();
+  }
+  $('#slidervalue').html(swing);
+  $('#slidertext').html(text);
+  mymap.removeLayer(constitswing);
+  add_polygons();
 });
 
-draw_map();
+add_polygons();
 
 
 
